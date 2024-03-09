@@ -2,146 +2,141 @@ import { Hono } from 'hono'
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { decode, sign, verify } from 'hono/jwt'
-interface User {
-  name: string;
-  email: string;
-  password: string;
-  id?: string;
-}
+import { bearerAuth } from 'hono/bearer-auth'
+import { User } from './interface'
+import { userRoute } from './routes/user'
+import { blogRoute } from './routes/blog'
+import { Context } from 'hono/jsx'
+
+// interface User {
+//   name: string;
+//   email: string;
+//   password: string;
+//   id?: string;
+// }
 
 const app = new Hono<{
   Bindings: {
     DATABASE_URL: string
-  }
+  },
+  // Variables: {
+  //   userId: String
+  // }
+
 }>();
-const prisma = new PrismaClient()
+
+
+const JWT_ALGORITHM = 'HS256';
+const UNAUTHORIZED_MESSAGE = 'Not Authorized';
+const AUTHORIZATION_NOT_FOUND_MESSAGE = 'Authorization not found';
+
+app.route('/api/v1/user', userRoute)
+
+
+
+const authorizeMiddleware = async (c: any, next: () => Promise<void>) => {
+  try {
+    const authToken = c.req.header('Authorization');
+
+    if (!authToken) {
+      return c.text(AUTHORIZATION_NOT_FOUND_MESSAGE, 500);
+    }
+
+    const [bearer, token] = authToken.split(' ');
+
+    if (!token) {
+      return c.text(UNAUTHORIZED_MESSAGE, 500);
+    }
+
+    const decodedToken = await verify(token, c.env?.DATABASE_URL, JWT_ALGORITHM);
+    console.log(`decodedToken => ${decodedToken}`)
+
+    if (decodedToken) {
+
+      c.set('authorID', decodedToken)
+
+      await next();
+    } else {
+      return c.text(UNAUTHORIZED_MESSAGE, 500);
+    }
+
+  } catch (error) {
+    console.error('Error during JWT verification:', error);
+    return c.text('Internal Server Error', 500);
+  }
+}
+
+app.use('/api/v1/blog/*', authorizeMiddleware)
+app.route('/api/v1/blog', blogRoute);
+
+
+
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')
 })
-app.get('/yo', (c) => {
-  return c.text('dfghjhgffgh Hono!')
-})
-app.post('/api/v1/signup', async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env?.DATABASE_URL,
-  }).$extends(withAccelerate())
-  let body = await c.req.json();
+// app.post('/api/v1/signup', async (c) => {
+//   const prisma = new PrismaClient({
+//     datasourceUrl: c.env?.DATABASE_URL,
+//   }).$extends(withAccelerate())
+//   let body = await c.req.json();
 
-  try {
-    const user: User = await prisma.user.create({
-      data: {
-        email: body.email,
-        password: body.password,
-        name: body.name
-      },
-    });
+//   try {
+//     const user: User = await prisma.user.create({
+//       data: {
+//         email: body.email,
+//         password: body.password,
+//         name: body.name
+//       },
+//     });
 
-    return c.json({
-      Id: `${user.id}`,
-      message: "signed up successfully"
-    })
+//     return c.json({
+//       Id: `${user.id}`,
+//       message: "signed up successfully"
+//     })
 
 
-  } catch (error) {
-    console.error('error is', `${error}`)
+//   } catch (error) {
+//     console.error('error is', `${error}`)
 
-    return c.json({
-      message: `error is ${error}`,
-    })
-  }
+//     return c.json({
+//       message: `error is ${error}`,
+//     })
+//   }
 
 
-})
+// })
 
 
 
 
-app.post('/api/v1/signup2', async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env?.DATABASE_URL,
-  }).$extends(withAccelerate());
-  const body = await c.req.json();
-  try {
-    const user = await prisma.user.create({
-      data: {
-        email: body.email,
-        password: body.password
-      }
-    });
+// app.post('/api/v1/signup2', async (c) => {
+//   const prisma = new PrismaClient({
+//     datasourceUrl: c.env?.DATABASE_URL,
+//   }).$extends(withAccelerate());
+//   const body = await c.req.json();
+//   try {
+//     const user = await prisma.user.create({
+//       data: {
+//         email: body.email,
+//         password: body.password
+//       }
+//     });
 
-    return c.text('jwt here')
-  } catch (e) {
-    return c.status(403);
-  }
-})
+//     return c.text('jwt here')
+//   } catch (e) {
+//     return c.status(403);
+//   }
+// })
 
 
 
 
 
 
-app.post('/api/v1/signin', async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env?.DATABASE_URL,
-  }).$extends(withAccelerate())
-  let body = await c.req.json();
 
-  try {
-    let password = body.password;
-    let email = body.email;
-
-    let signIn = await prisma.user.findUnique({
-      where: { email }
-
-    })
-
-    if (signIn) {
-
-      if (signIn.password === password) {
-
-        let jwt = await sign(
-          signIn.id,
-          c.env?.DATABASE_URL,
-          'HS256'
-        );
-
-        return c.json({
-          token: `${jwt}`,
-          message: "logged-in"
-        })
-
-      }
-
-    }
-    else
-      console.log(signIn)
-    return c.text('invalid credentials / user not found')
-
-    // return c.text('user signed in')
-
-  } catch (error) {
-    console.log(error);
-
-  }
-
-
-
-  return c.text('post route Hono!')
-})
-app.post('/api/v1/blog', (c) => {
-  return c.text('post route Hono!')
-})
 app.put('/api/v1/blog', (c) => {
   return c.text('post route Hono!')
-})
-app.get('/api/v1/blog', (c) => {
-  return c.text('post route Hono!')
-})
-app.get('/api/v1/blog/:id', (c) => {
-  const name = c.req.param('id')
-
-  return c.text(name)
 })
 
 
