@@ -7,6 +7,9 @@ import { User } from './interface'
 import { userRoute } from './routes/user'
 import { blogRoute } from './routes/blog'
 import { Context } from 'hono/jsx'
+import { cors } from 'hono/cors'
+
+
 
 // interface User {
 //   name: string;
@@ -24,6 +27,19 @@ const app = new Hono<{
   // }
 
 }>();
+
+app.use('/api/*', cors())
+app.use(
+  '/api2/*',
+  cors({
+    origin: 'http://example.com',
+    allowHeaders: ['X-Custom-Header', 'Upgrade-Insecure-Requests'],
+    allowMethods: ['POST', 'GET', 'OPTIONS'],
+    exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    maxAge: 600,
+    credentials: true,
+  })
+)
 
 
 const JWT_ALGORITHM = 'HS256';

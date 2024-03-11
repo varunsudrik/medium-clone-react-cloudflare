@@ -39,10 +39,13 @@ userRoute.post('/signup',
                 },
             });
 
-            return c.json({
-                Id: `${user.id}`,
-                message: "signed up successfully"
-            })
+            let jwt = await sign(
+                user.id,
+                c.env?.DATABASE_URL,
+                'HS256'
+            );
+
+            return c.text(jwt)
 
 
         } catch (error) {
@@ -92,10 +95,12 @@ userRoute.post('/signin',
                         'HS256'
                     );
 
-                    return c.json({
-                        token: `${jwt}`,
-                        message: "logged-in"
-                    })
+                    // return c.json({
+                    //     token: `${jwt}`,
+                    //     message: "logged-in"
+                    // })
+                    return c.text(jwt)
+
 
                 }
 

@@ -46,12 +46,9 @@ blogRoute.post('/new',
 
                 },
             });
-            //    console.log('post=>', post)
+            console.log('post=>', post)
 
-            return c.json({
-                post: `${post}`,
-                message: "post created successfully"
-            })
+            return c.json({ id: post.id })
 
 
         } catch (error) {
@@ -119,13 +116,23 @@ blogRoute.get('/all', async (c) => {
     }).$extends(withAccelerate())
 
     try {
-        const post = await prisma.post.findMany({
+        const blogs = await prisma.post.findMany({
+            select: {
+                content: true,
+                title: true,
+                id: true,
+                author: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
 
         });
         //  console.log('get post=>', post)
 
         return c.json({
-            post
+            blogs
         })
 
 
@@ -157,18 +164,32 @@ blogRoute.get('/:id',
         }).$extends(withAccelerate())
 
         try {
-            const post = await prisma.post.findUnique({
+            const blog = await prisma.post.findUnique({
                 where: {
                     id,
                 },
+                select: {
+                    id: true,
+                    title: true,
+                    content: true,
+                    author: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
 
             });
             //  console.log('get post=>', post)
-            if (post) {
+            // if (post) {
+            //     return c.json({
+            //         title: `${post?.title}`,
+            //         content: `${post?.content}`,
+            //         message: "post get successfully"
+            //     })
+            if (blog) {
                 return c.json({
-                    title: `${post?.title}`,
-                    content: `${post?.content}`,
-                    message: "post get successfully"
+                    blog
                 })
 
             }

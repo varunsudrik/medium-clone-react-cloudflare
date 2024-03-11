@@ -2,7 +2,7 @@ import { z, ZodError } from 'zod';
 
 export const newBlogSchema = z.object({
     title: z.string(),
-    authId: z.string(),
+    //  authId: z.string(),
     content: z.string(),
 });
 
@@ -37,6 +37,7 @@ export type signinType = z.input<typeof signInSchema>; // string
 export const signUpSchema = z.object({
     email: z.string().email(),
     password: z.string(),
+    name: z.string(),
 });
 
 export type signUpType = z.input<typeof signUpSchema>; // string
