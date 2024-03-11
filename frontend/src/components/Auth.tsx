@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signUpType } from "medium-clone-helper";
 import axios from "axios";
@@ -6,28 +6,40 @@ import { BACKEND_URL } from "../config";
 
 export const Auth = ({ type }: { type: "signup" | "signin" }) => {
   const navigate = useNavigate();
+  const [disabled, setDisabled] = useState(true);
+
   const [postInputs, setPostInputs] = useState<signUpType>({
     name: "",
     email: "",
     password: "",
   });
+  useEffect(() => {
+    setDisabled(!areAllFieldsFilled());
+  }, [postInputs]);
+
+  const areAllFieldsFilled = () => {
+    if (type === "signup") {
+      return postInputs.name && postInputs.email && postInputs.password;
+    } else return postInputs.email && postInputs.password;
+  };
 
   async function sendRequest() {
-    try {
-      const response = await axios.post(
-        `${BACKEND_URL}/api/v1/user/${type === "signup" ? "signup" : "signin"}`,
-        postInputs
-      );
-      // const jwt = response.data;
-      // localStorage.setItem("token", jwt);
-      // navigate("/blogs");
-      const jwt = response.data;
-      const tokenWithBearer = `Bearer ${jwt}`;
-      localStorage.setItem("token", tokenWithBearer);
-      navigate("/blogs");
-    } catch (e) {
-      alert("Error while signing up");
-      // alert the user here that the request failed
+    if (areAllFieldsFilled()) {
+      try {
+        const response = await axios.post(
+          `${BACKEND_URL}/api/v1/user/${
+            type === "signup" ? "signup" : "signin"
+          }`,
+          postInputs
+        );
+        const jwt = response.data;
+        const tokenWithBearer = `Bearer ${jwt}`;
+        localStorage.setItem("token", tokenWithBearer);
+        navigate("/blogs");
+      } catch (e) {
+        alert("Error while signing up");
+        // alert the user here that the request failed
+      }
     }
   }
 
@@ -86,7 +98,9 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
             <button
               onClick={sendRequest}
               type="button"
-              className="mt-8 w-full text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+              className={`mt-8 w-full text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-${
+                disabled ? 500 : 800
+              } dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700`}
             >
               {type === "signup" ? "Sign up" : "Sign in"}
             </button>
@@ -112,14 +126,14 @@ function LabelledInput({
 }: LabelledInputType) {
   return (
     <div>
-      <label className="block mb-2 text-sm text-black font-semibold pt-4">
+      <label className="block mb-2 text-sm text-green font-semibold pt-4">
         {label}
       </label>
       <input
         onChange={onChange}
         type={type || "text"}
         id="first_name"
-        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        className="bg-gray-50 border border-gray-300 text-pink-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
         placeholder={placeholder}
         required
       />
